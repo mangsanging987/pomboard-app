@@ -1,0 +1,18 @@
+{
+  "name": "폼폼 보드클럽",
+  "short_name": "폼폼 보드클럽",
+  "description": "두 포메라니안 라이벌의 보드게임 클럽",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5efe4",
+  "theme_color": "#17365d",
+  "icons": [
+    {
+      "src": "./assets/app-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

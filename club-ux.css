@@ -1,0 +1,26 @@
+#clubStats{padding:12px 14px 8px;text-align:center;color:#514333}#clubStats .ux-total{display:block;font-size:clamp(13px,3.7vw,17px)}.ux-today{display:block;margin:6px 0;color:#85715c}#clubStats summary{min-height:44px;cursor:pointer;align-content:center}.ux-games p{display:flex;justify-content:space-between;gap:8px;font-size:12px;text-align:left}.ux-stat-key{font-size:11px;color:#85715c}.club-duel{position:relative}.ux-bubble{position:absolute;left:50%;top:0;transform:translate(-50%,-40%);padding:4px 9px;border:1px solid #dec7a5;border-radius:12px;background:#fff8e9;color:#69523b;font-size:11px;white-space:nowrap;pointer-events:none}.ux-last-from{outline:2px dashed #e4bc63!important;outline-offset:2px}.ux-last-to{outline:3px solid #f5cd72!important;outline-offset:2px}.ux-last-capture{outline:2px dotted #bd795b!important;outline-offset:2px}.three-node.ux-last-to,.three-node.ux-last-from{outline-offset:1px}.club-result-art~.primary-button{min-height:44px}@media(prefers-reduced-motion:reduce){.ux-bubble{animation:none;transition:none}}
+#clubStats{background:#fffaf0;border:1px solid #e5d8c4;border-radius:18px;margin-top:10px}
+
+/* Compact settings: 44px native touch targets, 30px visual faces. */
+.ux-quick-controls{display:flex;gap:0;flex:0 0 88px;align-items:center}
+.ux-control{position:relative;display:grid;place-items:center;width:44px;height:44px;cursor:pointer;flex:none;touch-action:manipulation}
+.ux-control input{position:absolute;inset:0;width:44px;height:44px;margin:0;opacity:0;cursor:pointer;z-index:1}
+.ux-control-face{position:relative;display:grid;place-items:center;width:30px;height:30px;border:1px solid #c6b59b;border-radius:10px;background:#f3ebdd;color:#76624d;transition:background .15s,transform .15s}
+.ux-control-face svg{width:19px;height:19px}
+.ux-control-face i{position:absolute;right:2px;bottom:2px;width:5px;height:5px;border:1px solid currentColor;border-radius:50%;background:#fffaf0}
+.ux-control input:checked+.ux-control-face{background:#fffaf0;color:#59452e;border-color:#b99d77}
+.ux-control input:checked+.ux-control-face i{background:#54734e;border-color:#54734e}
+.ux-control input:checked+.ux-control-face .ux-off-mark,.ux-control input:not(:checked)+.ux-control-face .ux-on-mark{display:none}
+.ux-control input:focus-visible+.ux-control-face{outline:3px solid #587562;outline-offset:3px}
+.ux-control input:active+.ux-control-face{transform:scale(.92)}
+.home-header.ux-control-header{position:relative}
+.home-header.ux-control-header>.eyebrow{margin-right:88px;min-height:14px}
+.home-header>.ux-quick-controls{position:absolute;top:25px;right:0}
+.topbar.ux-control-header{gap:6px}
+.topbar.ux-control-header>.ux-quick-controls{margin-left:auto}
+.topbar.ux-control-header>.topbar-space,.topbar.ux-control-header>span:empty{display:none}
+.topbar.ux-control-header>.topbar-title,.topbar.ux-control-header>b{min-width:0;flex:0 1 auto;overflow-wrap:anywhere}
+.topbar.ux-control-header>button{flex-shrink:0}
+.topbar.ux-control-header>.text-button{padding-left:5px;padding-right:5px}
+@media(prefers-reduced-motion:reduce){.ux-control-face{transition:none}}
+

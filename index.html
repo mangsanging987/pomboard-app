@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <meta name="theme-color" content="#f4efe6" />
+
+  <title>폼폼 보드클럽</title>
+
+  <link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="rivals.css" /><link rel="stylesheet" href="club-ux.css">
+<link rel="stylesheet" href="quoridor.css">
+<!-- 폼폼 보드클럽 PWA 설정 -->
+<link rel="manifest" href="./manifest.json">
+
+<meta name="theme-color" content="#17365d">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="폼폼 보드클럽">
+
+<link rel="apple-touch-icon" href="./assets/app-icon.png">
+</head>
+
+<body>
+
+<main class="app-shell">
+
+  <!-- =====================================================
+       홈
+  ====================================================== -->
+
+  <section id="homeScreen" class="screen active home-screen">
+
+    <header class="home-header">
+
+      <p class="eyebrow">POM BOARD CLUB</p>
+
+      <h1>오늘도 한 판?</h1>
+
+      <p class="home-description">
+        단골 둘, 테이블 하나.<br>오늘의 승부를 골라보세요.
+      </p>
+
+    </header>
+
+
+<div class="club-hero"><div class="club-hero-label"><span>BLACK <small>작은 승부욕</small></span><b>VS</b><span>WHITE <small>여유로운 한 수</small></span></div><div class="club-hero-dogs"><img src="assets/dogs/black-default.webp" alt="BLACK · 검정 스카프를 맨 흰 포메라니안" width="434" height="528"><img src="assets/dogs/white-default.webp" alt="WHITE · 아이보리 스카프를 맨 크림 포메라니안" width="435" height="522"></div><div class="club-table"><span>두 라이벌의 보드게임 카페</span><i></i><i></i></div></div><p class="club-section-label">오늘의 테이블 <span>5 GAMES · AI 대전</span></p><div class="game-list">
+
+      <!-- 오목 -->
+
+      <button
+        class="game-card gomoku-card"
+        onclick="openGomokuSetup()"
+      >
+
+        <div class="game-card-copy">
+
+          <span class="game-label">GOMOKU</span>
+
+          <h2>오목</h2>
+
+          <p>15 × 15 렌주룰</p>
+
+        </div>
+
+
+        <div class="stone-pair">
+
+          <span class="preview-stone black"></span>
+          <span class="preview-stone white"></span>
+
+        </div>
+
+      </button>
+
+
+      <button class="game-card" id="ccOpen"><div><span class="game-label">CARD CHESS</span><h2>카드 체스</h2><p>다섯 장의 카드, 성을 향한 승부</p></div><span class="cc-home-art" aria-hidden="true">♜</span></button>
+      <button class="game-card three-card" id="threeOpen"><div><span class="game-label">THREE LEVEL GOMOKU</span><h2>3층 오목</h2><p>쌓고, 옮기고, 다섯을 잇다 · AI 대전</p></div><span class="three-card-art" aria-hidden="true"><i></i><i></i><i></i></span></button>
+      <button class="game-card" id="morrisOpen"><div><span class="game-label">NINE MEN’S MORRIS</span><h2>나인 멘스 모리스</h2><p>세 개를 잇는 작은 전략 · AI 대전</p></div><span class="morris-card-art">◎</span></button>
+
+      <button class="game-card" id="qOpen"><div><span class="game-label">QUORIDOR</span><h2>쿼리도</h2><p>길을 만들고, 라이벌보다 먼저 도착!</p></div><span class="q-home-art" aria-hidden="true">▥</span></button>
+    </div>
+
+
+    <div class="home-footer">
+      가볍게 한 판.
+    </div>
+
+  </section>
+
+
+
+  <!-- =====================================================
+       오목 설정
+  ====================================================== -->
+
+  <section id="setupScreen" class="screen setup-screen">
+
+    <div class="topbar">
+
+      <button
+        class="icon-button"
+        onclick="goHome()"
+      >
+        ‹
+      </button>
+
+      <div class="topbar-title">
+        오목
+      </div>
+
+      <div class="topbar-space"></div>
+
+    </div>
+
+
+    <div class="setup-content"><div class="rivals"><div class="rival black-team"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span>흑 진영</span></div><span class="versus">VS</span><div class="rival white-team"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span>백 진영</span></div></div>
+
+      <div class="setup-heading">
+
+        <p class="eyebrow">
+          GOMOKU
+        </p>
+
+        <h1>
+          게임 설정
+        </h1>
+
+        <p>
+          돌과 AI 난이도를 선택하세요.
+        </p>
+
+      </div>
+
+
+      <section class="setting-card">
+
+        <div class="setting-title-row">
+
+          <div>
+
+            <span class="setting-label">
+              내 돌
+            </span>
+
+            <strong>
+              색상 선택
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="segment-control">
+
+          <button
+            class="segment active"
+            data-color="black"
+          >
+
+            <span class="mini-stone black"></span>
+
+            흑
+
+          </button>
+
+
+          <button
+            class="segment"
+            data-color="white"
+          >
+
+            <span class="mini-stone white"></span>
+
+            백
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <section class="setting-card">
+
+        <div class="setting-title-row">
+
+          <div>
+
+            <span class="setting-label">
+              상대
+            </span>
+
+            <strong>
+              AI 난이도
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="difficulty-list">
+
+
+          <button
+            class="difficulty active"
+            data-level="normal"
+          >
+
+            <div>
+              <strong>보통</strong>
+              <span>기본적인 공격과 방어</span>
+            </div>
+
+            <span class="difficulty-dot"></span>
+
+          </button>
+
+
+          <button
+            class="difficulty"
+            data-level="hard"
+          >
+
+            <div>
+              <strong>어려움</strong>
+              <span>패턴과 다음 수까지 고려</span>
+            </div>
+
+            <span class="difficulty-dot"></span>
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <div class="rule-note">
+
+        <span class="rule-icon">◉</span>
+
+        <div>
+
+          <strong>
+            렌주룰
+          </strong>
+
+          <p>
+            흑은 3-3, 4-4, 장목이 금수입니다.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <button
+        class="primary-button"
+        onclick="startGame()"
+      >
+        게임 시작
+      </button>
+
+    </div>
+
+  </section>
+
+
+
+  <!-- =====================================================
+       오목 게임
+  ====================================================== -->
+
+  <section id="gameScreen" class="screen game-screen">
+
+    <div class="topbar game-topbar">
+
+      <button
+        class="icon-button"
+        onclick="backToSetup()"
+      >
+        ‹
+      </button>
+
+
+      <div class="topbar-title">
+        오목
+      </div>
+
+
+      <button
+        class="text-button"
+        onclick="resetBoard()"
+      >
+        새 게임
+      </button>
+
+    </div>
+
+
+    <div class="game-content"><div class="rivals"><div class="rival black-team"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span>흑 진영</span></div><span class="versus">VS</span><div class="rival white-team"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span>백 진영</span></div></div>
+
+      <section class="player-box">
+
+        <div class="player-status-main">
+
+          <span
+            id="playerStone"
+            class="status-stone black"
+          ></span>
+
+
+          <div>
+
+            <span class="status-caption">
+              GAME STATUS
+            </span>
+
+            <strong>
+              당신의 차례
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="difficulty-badge">
+
+          <span>AI</span>
+
+          <strong id="difficultyText">
+            보통
+          </strong>
+
+        </div>
+
+      </section>
+
+
+      <div class="board-section">
+
+        <div class="board-frame">
+
+          <canvas
+            id="gomokuBoard"
+            width="700"
+            height="700"
+          ></canvas>
+
+
+          <div
+            id="forbiddenMarker"
+            class="forbidden-marker"
+          >
+            ×
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="game-info-pills">
+
+        <span>15 × 15</span>
+        <span>렌주룰</span>
+        <span>AI 대전</span>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="resultOverlay"
+      class="result-overlay"
+      aria-hidden="true"
+    >
+
+      <div class="result-card"><div class="rivals"><div class="rival black-team"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span>흑 진영</span></div><span class="versus">VS</span><div class="rival white-team"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span>백 진영</span></div></div>
+
+        <div
+          id="resultIcon"
+          class="result-icon"
+        >
+          ●
+        </div>
+
+
+        <p class="result-label">
+          GAME OVER
+        </p>
+
+
+        <h2 id="resultTitle">
+          당신의 승리!
+        </h2>
+
+
+        <p
+          id="resultDescription"
+          class="result-description"
+        >
+          좋은 수였어요.
+        </p>
+
+
+        <div class="result-actions">
+
+          <button
+            class="primary-button"
+            onclick="playAgain()"
+          >
+            재대결!
+          </button>
+
+
+          <button
+            class="secondary-button"
+            onclick="returnToSetupFromResult()"
+          >
+            설정으로
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section><section id="morrisSetup" class="screen"><div class="topbar"><button id="morrisHome" class="icon-button" aria-label="홈으로">‹</button><b>나인 멘스 모리스</b></div><div class="setup-content"><p class="eyebrow">NINE MEN’S MORRIS</p><h1>세 개를 잇는 승부</h1><div class="rivals"><div class="rival black-team"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span>흑 진영</span></div><span class="versus">VS</span><div class="rival white-team"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span>백 진영</span></div></div><div class="setting-card"><label for="morrisColor">내 진영</label><select id="morrisColor"><option value="1">흑 · 먼저 두기</option><option value="2">백 · AI가 먼저</option></select><label for="morrisLevel">AI 난이도</label><select id="morrisLevel"><option value="normal">보통</option><option value="hard">어려움</option></select></div><p class="rule-note">각자 9개를 놓은 뒤 선을 따라 이동하세요. 세 개를 이으면 상대 말 하나를 제거합니다. 3개 남으면 자유 이동, 먼저 2승하면 매치 승리!</p><details class="setting-card"><summary>규칙과 향후 설정</summary><p>mill 안의 말은 항상 보호됩니다. 제거 가능한 상대 말이 없으면 제거 없이 차례가 넘어갑니다.</p><p>90초 초과 처리와 10턴 교착 판정은 정의 확정 후 추가됩니다. 현재 시간 제한 및 교착 자동 패배는 적용하지 않습니다.</p></details><button id="morrisStart" class="primary-button">AI와 시작</button></div></section>
+<section id="morrisGame" class="screen"><div class="topbar"><button id="morrisBack" class="icon-button" aria-label="모리스 설정으로">‹</button><b>나인 멘스 모리스</b><button id="morrisRestart" class="text-button">새 매치</button></div><div class="game-content"><div class="rivals"><div class="rival black-team"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span>흑 진영</span></div><span class="versus">VS</span><div class="rival white-team"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span>백 진영</span></div></div><div id="morrisScore" class="morris-score"></div><p id="morrisStatus" class="morris-status" role="status" aria-live="polite"></p><div id="morrisBoard" class="morris-board" aria-label="나인 멘스 모리스 24점 게임판"></div><p id="morrisCounts" class="morris-counts"></p><div id="morrisResult" class="setting-card" hidden><h2 id="morrisResultTitle"></h2><button id="morrisNext" class="primary-button">다음 라운드</button></div><p class="morris-footnote">AI 대전 · 2선승 · 시간 제한 미적용</p></div></section>
+<section id="threeSetup" class="screen">
+  <div class="topbar"><button id="threeHome" class="icon-button" aria-label="홈으로">‹</button><b>3층 오목</b><span></span></div>
+  <div class="setup-content"><p class="eyebrow">THREE LEVEL GOMOKU</p><h1>한 층 더 깊은 승부</h1><p class="three-intro">덮인 색을 기억하고,<br>다음 수의 높이를 생각하세요.</p>
+    <div class="setting-card three-settings">
+      <label for="threeColor">내 진영</label><select id="threeColor"><option value="black">흑 포메라니안</option><option value="white">백 포메라니안</option></select>
+      <label for="threeLevel">AI 난이도</label><select id="threeLevel"><option value="normal">보통</option><option value="hard">어려움</option></select>
+      <label for="threeFirst">1라운드 선후공</label><select id="threeFirst"><option value="me">내가 선공</option><option value="ai">내가 후공 · AI 선공</option></select>
+    </div>
+    <details class="setting-card three-rules"><summary>게임 방법</summary>
+      <p>각자 25개. 기본 배치는 선 1개 → 후 2개 → 선 2개 → 후 1개입니다. 중앙과 내 돌에 인접한 점에는 기본 배치할 수 없습니다.</p>
+      <p>그 뒤 선공부터 번갈아 빈 점에 새 돌 하나를 놓거나, 내 최상단 돌 하나를 이웃한 점으로 옮깁니다. 스택은 최대 3층입니다.</p>
+      <p>이동 후 높이: 1층 → 2층만, 2층 → 1·2·3층, 3층 → 1·2·3층.</p>
+      <p>최상단 색으로 정확히 5목(6목 이상 제외), 내 3층 스택 5개, 또는 연결된 내 3층 스택 3개를 만들면 승리합니다. 동시에 성립하면 방금 둔 진영이 승리합니다.</p>
+      <p>최대 3라운드, 먼저 2승. 인접한 세 점은 직선·꺾임·삼각형을 포함한 연결 형태로 적용합니다. 최상단 돌만 이동할 수 있습니다.</p>
+      <p>후속 라운드는 직전 패자의 선택을 수동으로 입력합니다(AI가 패자여도 사용자가 대신 선택). 합법수가 없는 경우는 앱의 임시 규칙으로 무승부 후 같은 라운드를 다시 진행합니다.</p>
+    </details>
+    <button id="threeStart" class="primary-button">AI와 시작</button>
+  </div>
+</section>
+<section id="threeGame" class="screen">
+  <div class="topbar"><button id="threeBack" class="icon-button" aria-label="3층 오목 설정으로">‹</button><b>3층 오목</b><button id="threeRestart" class="text-button">새 매치</button></div>
+  <div class="game-content">
+    <div class="rivals"><div class="rival"><span class="dog-portrait dog-black" role="img" aria-label="흑 진영 포메라니안"></span><span id="threeCount흑">흑 진영</span></div><span class="versus">VS</span><div class="rival"><span class="dog-portrait dog-white" role="img" aria-label="백 진영 포메라니안"></span><span id="threeCount백">백 진영</span></div></div>
+    <p id="threeScore" class="three-score"></p>
+    <p id="threeStatus" class="three-status" role="status" aria-live="polite"></p>
+    <div id="threeBoard" class="three-board" role="group" aria-label="삼각 격자 85개 교차점 게임판"></div>
+    <p class="three-touch-guide">빈 곳을 누르면 놓기 · 내 돌을 누르면 이동</p>
+    <p id="threeHint" class="three-hint"></p>
+    <div id="threeResult" class="setting-card" hidden><h2 id="threeResultTitle"></h2><p id="threeReason"></p><div id="threeOrderBox" class="three-settings"><label id="threeChooser" for="threeNextFirst"></label><p class="three-hint">직전 패자의 선후공 선택을 수동으로 입력하세요. AI가 패자일 때도 대신 선택합니다.</p><select id="threeNextFirst"><option value="me">내가 선공</option><option value="ai">내가 후공 · AI 선공</option></select></div><button id="threeNext" class="primary-button">다음 라운드</button></div>
+    <p class="three-footnote">85개 교차점 · 최상단 색으로 승부 · AI 대전</p>
+  </div>
+</section>
+<section id="ccSetup" class="screen">
+<div class="topbar"><button id="ccHome" class="icon-button" aria-label="홈으로">‹</button><b>카드 체스</b><span></span></div>
+<div class="setup-content"><p class="eyebrow">CARD CHESS</p><h1>다섯 장으로 여는 길</h1><p>카드를 돌려 쓰며 상대 성을 차지하세요.</p>
+<div class="setting-card cc-settings"><label for="ccColor">내 진영</label><select id="ccColor"><option value="black">흑 포메라니안</option><option value="white">백 포메라니안</option></select><label for="ccFirst">선후공</label><select id="ccFirst"><option value="0">내가 선공 · AI가 카드 배치</option><option value="1">내가 후공 · 내가 카드 배치</option></select><label for="ccLevel">AI 난이도</label><select id="ccLevel"><option value="normal">보통</option><option value="hard">어려움</option></select></div>
+<details class="setting-card"><summary>게임 방법과 카드 규칙</summary><p>각자 말 5개로 시작합니다. 후공이 자기 카드 2장, 선공 카드 2장을 정하면 남은 1장은 대기존에 놓입니다.</p><p>카드 → 내 말 → 목적지 순으로 누르세요. 사용한 카드와 대기 카드가 서로 바뀝니다. 아군 칸에는 착지할 수 없고 적군 칸에 착지하면 포획합니다.</p><p>룩: 상하좌우 1칸. 비숍: 대각선 1칸. 어태커: 말의 화살표 방향으로 1·2칸 또는 앞 대각선 1칸. 2칸 전진할 때 중간에 말이 있으면 갈 수 없습니다.</p><p>나이트: 가로 2칸·세로 1칸 또는 가로 1칸·세로 2칸을 뛰어넘습니다. 점퍼: 8방향의 인접 말 하나를 넘어 같은 방향 2칸 떨어진 곳에 착지합니다. 뛰어넘은 말은 그대로 남습니다.</p><p>전체 말이 2개가 되는 즉시 점퍼가 퀸(8방향 1칸)으로 바뀝니다. 말은 진행 방향의 끝줄에 도착하면 반대 방향을 봅니다. 어태커 그림은 위를 보는 말 기준입니다.</p><p>상대 말을 모두 잡거나, 상대 성에 들어간 말이 상대의 다음 한 턴이 끝날 때까지 살아 있으면 승리합니다. 한 세트로 진행합니다.</p><p>합법수가 없는 경우는 제공 규칙에 없어 승패·패스를 임의로 정하지 않고 진행을 멈춥니다. 다시 하기나 설정으로 이동할 수 있습니다.</p></details>
+<button id="ccStart" class="primary-button">AI와 시작</button></div></section>
+<section id="ccGame" class="screen"><div class="topbar"><button id="ccBack" class="icon-button" aria-label="카드 체스 설정으로">‹</button><b>카드 체스</b><button id="ccRestart" class="text-button">다시 하기</button></div>
+<div class="cc-rivals"><span id="ccHumanDog" class="dog-portrait dog-black" role="img" aria-label="내 포메라니안"></span><span id="ccCounts"></span><span id="ccAIDog" class="dog-portrait dog-white" role="img" aria-label="AI 포메라니안"></span></div>
+<p id="ccStatus" class="cc-status" role="status" aria-live="polite"></p><p id="ccThreat" class="cc-threat" role="status"></p>
+<div id="ccDeal" class="setting-card" hidden><h2 id="ccDealTitle"></h2><p id="ccDealChosen"></p><div id="ccDealCards" class="cc-deal-cards"></div><button id="ccDealUndo" class="secondary-button">선택 한 장 취소</button></div>
+<div id="ccTable"><div class="cc-top-cards"><div><p class="cc-label">AI 카드</p><div id="ccAIHand" class="cc-hand"></div></div><div><p class="cc-label">대기 카드 ↻</p><div id="ccWait"></div></div></div>
+<div id="ccBoard" class="cc-board" role="group" aria-label="카드 체스 5행 5열 보드, 위 중앙은 AI 성, 아래 중앙은 내 성"></div>
+<p class="cc-label">내 카드 · 선택한 카드를 다시 누르면 취소</p><div id="ccHand" class="cc-hand"></div><p class="cc-guide">▲ ▼ 말의 전진 방향 · ♜ 성<br>카드 선택 → 빛나는 내 말 → 목적지</p></div>
+<div id="ccResult" class="setting-card" hidden><h2 id="ccResultTitle"></h2><p id="ccReason"></p><div class="result-actions"><button id="ccAgain" class="primary-button">재대결!</button><button id="ccSettings" class="secondary-button">설정으로</button></div></div></section>
+<section id="qSetup" class="screen">
+<div class="topbar"><button id="qHome" class="icon-button" aria-label="홈으로">‹</button><b>쿼리도</b><span></span></div>
+<div class="setup-content"><p class="eyebrow">QUORIDOR · THE FINAL TABLE</p><h1>작은 발걸음, 큰 작전.</h1><p>길을 내거나, 길을 막거나.<br>강아지를 반대편 끝줄까지 데려가세요.</p>
+<div class="setting-card q-settings"><label for="qColor">내 진영</label><select id="qColor"><option value="black">BLACK · 내가 선공</option><option value="white">WHITE · AI가 선공</option></select><label for="qLevel">AI 난이도</label><select id="qLevel"><option value="normal">Normal · 보통</option><option value="hard">Hard · 어려움</option></select></div>
+<details class="setting-card"><summary>게임 방법</summary><p>9×9 보드에서 BLACK은 아래 중앙, WHITE는 위 중앙에서 시작합니다. BLACK 선공, 각자 벽 10개. 한 차례에 말 이동 또는 벽 하나 설치 중 하나를 선택합니다. 반대쪽 끝줄 아무 칸에 먼저 도착하면 승리합니다.</p><p>상하좌우 한 칸 이동하며 벽은 통과할 수 없습니다. 상대가 바로 앞에 있고 그 뒤가 열려 있으면 직선으로 뛰어넘습니다. 상대 뒤가 벽이나 가장자리로 막힌 경우에만 상대 옆으로 돌아갈 수 있습니다. 일반 대각선 이동은 금지합니다.</p><p>벽은 가로 또는 세로 두 칸 길이입니다. 겹치거나 교차할 수 없으며 두 강아지가 도착할 길을 적어도 하나씩 남겨야 합니다. 벽을 모두 쓰면 이동만 가능합니다.</p><p>내 강아지를 누르면 이동 가능한 작은 점이 나타나며, 점을 누르면 이동합니다. 칸 사이 가로·세로 틈을 누르면 벽 미리보기가 고정되고, 같은 위치를 한 번 더 누르면 설치됩니다. 다른 틈을 누르면 벽 위치가 바뀌고, 내 강아지를 누르면 이동 선택으로 돌아갑니다. 붉은 벽은 설치할 수 없습니다.</p></details><button id="qStart" class="primary-button">AI와 시작</button></div></section>
+<section id="qGame" class="screen">
+<div class="topbar"><button id="qBack" class="icon-button" aria-label="쿼리도 설정으로">‹</button><b>쿼리도</b><span class="q-top-note">9 × 9</span></div>
+<div id="qCounts" class="q-counts"></div><div class="q-status-line"><img id="qThinking" alt="AI 생각 중인 포메라니안" hidden><p id="qStatus" role="status" aria-live="polite"></p></div>
+<p class="q-goal">↑ BLACK 도착 줄</p><div class="q-board-frame"><div id="qBoard" class="q-board" aria-label="쿼리도 9행 9열 보드"><div id="qCells" class="q-cells"></div><div id="qWalls" class="q-walls"></div><div id="qSlots" class="q-slots" hidden></div></div></div><p class="q-goal">WHITE 도착 줄 ↓</p>
+<p id="qHint" class="q-hint"></p><p id="qLast" class="q-last" aria-live="polite"></p>
+<dialog id="qResult" class="q-result"><div id="qResultDogs" class="q-result-dogs"></div><p class="eyebrow">QUORIDOR</p><h2 id="qResultTitle"></h2><p>반대편 끝줄에 도착했어요!</p><div class="result-actions"><button id="qAgain" class="primary-button">재대결!</button><button id="qSettings" class="secondary-button">설정 변경</button><button id="qResultHome" class="secondary-button">홈으로</button></div></dialog>
+</section></main><script src="club-ux.js"></script><script src="app.js"></script><script src="morris.js"></script><script src="threelevel.js"></script><script src="cardchess.js"></script><script src="quoridor.js"></script><script src="rivals.js"></script><script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js");
+    });
+  }
+</script></body></html>
