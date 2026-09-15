@@ -108,41 +108,60 @@
   }
   const $=id=>document.getElementById(id);
   let state=null,selectedCard=null,selectedPiece=null,worker=null,timer=null,generation=0,level='normal',humanColor='black',allocation=[],lastMove=null;
+  const local=()=>ClubPlay.local('cardchess');
+  const actor=()=>local()?state.turn:0;
+  const pass=document.createElement('dialog');pass.id='ccPass';pass.setAttribute('aria-labelledby','ccPassTitle');
+  pass.innerHTML='<h2 id="ccPassTitle"></h2><p>준비되면 카드를 확인하세요.</p><button class="primary-button" id="ccReady">준비됐어요</button><button class="secondary-button" id="ccPassBack">설정으로</button>';
+  $('ccGame').append(pass);
+  let passing=false;
+  function cover(player){passing=true;render();$('ccPassTitle').textContent='기기를 PLAYER '+(player+1)+'에게 넘겨주세요';if(!pass.open)pass.showModal();$('ccReady').focus();}
+  $('ccReady').onclick=()=>{passing=false;pass.close();if(!$('ccDeal').hidden)renderDeal();render();};
+  $('ccPassBack').onclick=()=>screen('ccSetup');
+  pass.addEventListener('cancel',e=>e.preventDefault());
   const descriptions={Rook:'상하좌우 1칸',Bishop:'대각선 1칸',Attacker:'앞 1·2칸 / 앞 대각선 1칸',Knight:'L자 점프',Jumper:'인접 말을 넘어 2칸',Queen:'8방향 1칸'};
   function diagram(t){const offsets=t==='Rook'?ORTH:t==='Bishop'?DIAG:t==='Knight'?KNIGHT:t==='Jumper'?ALL.map(([y,x])=>[y*2,x*2]):t==='Attacker'?[[-1,0],[-2,0],[-1,-1],[-1,1]]:ALL;return '<span class="cc-pattern" aria-hidden="true">'+Array.from({length:25},(_,i)=>'<i class="'+(i===12?'cc-origin':offsets.some(([y,x])=>(y+2)*5+x+2===i)?'cc-step':t==='Jumper'&&ALL.some(([y,x])=>(y+2)*5+x+2===i)?'cc-hurdle':'')+'"></i>').join('')+'</span>';}
   function card(c,interactive=false){const t=state?type(state,c):c;return `<button type="button" class="cc-card ${selectedCard===c?'cc-picked':''}" data-cc-card="${c}" ${interactive?'':'disabled'} aria-pressed="${selectedCard===c}">${diagram(t)}<span><strong>${NAMES[t]}</strong><small>${descriptions[t]}</small></span></button>`;}
-  function cancel(){generation++;clearTimeout(timer);if(worker)worker.terminate();worker=null;}
-  function screen(id){cancel();document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));}
-  function start(){ClubUX.begin('cardchess');cancel();level=$('ccLevel').value;humanColor=$('ccColor').value;state=initial(Number($('ccFirst').value));selectedCard=selectedPiece=null;allocation=[];lastMove=null;screen('ccGame');
+  function cancel(){generation++;passing=false;pass.close();clearTimeout(timer);if(worker)worker.terminate();worker=null;}
+  function screen(id){cancel();ClubPlay.enter(id);document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));}
+  function start(){ClubUX.begin('cardchess');cancel();level=$('ccLevel').value;humanColor=local()?'black':$('ccColor').value;state=initial(Number($('ccFirst').value));selectedCard=selectedPiece=null;allocation=[];lastMove=null;screen('ccGame');
+    if(local()){$('ccResult').hidden=true;$('ccDeal').hidden=false;cover(1-state.turn);return;}
     if(state.turn===0){state=deal(state,level);$('ccDeal').hidden=true;render();schedule();}
     else{$('ccDeal').hidden=false;renderDeal();render();}
   }
-  function renderDeal(){const step=allocation.length<2?'내 카드 2장을 선택하세요':'AI에게 줄 카드 2장을 선택하세요';$('ccDealTitle').textContent=step;$('ccDealCards').innerHTML=CARDS.filter(c=>!allocation.includes(c)).map(c=>card(c,true)).join('');$('ccDealChosen').textContent='내 카드: '+allocation.slice(0,2).map(c=>NAMES[c]).join(' · ')+' / AI: '+allocation.slice(2).map(c=>NAMES[c]).join(' · ');}
+  function renderDeal(){const step=allocation.length<2?(local()?'후공 PLAYER '+(2-state.turn)+' · 자기 카드 2장을 선택하세요':'내 카드 2장을 선택하세요'):(local()?'선공 PLAYER '+(state.turn+1)+'에게 줄 카드 2장을 선택하세요':'AI에게 줄 카드 2장을 선택하세요');$('ccDealTitle').textContent=step;$('ccDealCards').innerHTML=CARDS.filter(c=>!allocation.includes(c)).map(c=>card(c,true)).join('');$('ccDealChosen').textContent='내 카드: '+allocation.slice(0,2).map(c=>NAMES[c]).join(' · ')+(local()?' / 선공: ':' / AI: ')+allocation.slice(2).map(c=>NAMES[c]).join(' · ');}
   function render(){
+    ClubPlay.turn('cardchess',state.turn===0?'black':'white');
+    if(passing){$('ccAIHand').replaceChildren();$('ccHand').replaceChildren();$('ccWait').replaceChildren();$('ccDealCards').replaceChildren();$('ccDealChosen').textContent='';$('ccBoard').replaceChildren();$('ccTable').hidden=true;return;}
     const allocating=!$('ccDeal').hidden,ms=moves(state),available=ms.filter(m=>m.card===selectedCard);
-    $('ccAIHand').innerHTML=state.hands[1].map(c=>card(c)).join('');$('ccWait').innerHTML=card(state.wait);
-    $('ccHand').innerHTML=state.hands[0].map(c=>card(c,!allocating&&state.turn===0&&state.winner===null)).join('');
+    $('ccAIHand').innerHTML=local()?'':state.hands[1].map(c=>card(c)).join('');$('ccWait').innerHTML=card(state.wait);
+    $('ccHand').innerHTML=state.hands[actor()].map(c=>card(c,!allocating&&(local()||state.turn===0)&&state.winner===null)).join('');
     $('ccTable').hidden=allocating;
     $('ccBoard').innerHTML=state.board.map((a,i)=>{
       const dest=available.some(m=>m.from===selectedPiece&&m.to===i),source=available.some(m=>m.from===i),isCastle=i===2||i===22;
-      return `<button class="cc-cell ${lastMove?.from===i?'cc-last-from':''} ${lastMove?.to===i?'cc-last-to'+(lastMove.capture?' cc-last-capture':''):''} ${source?'cc-source':''} ${dest?'cc-dest':''} ${selectedPiece===i?'cc-selected':''}" data-cc-cell="${i}" aria-label="${Math.floor(i/5)+1}행 ${i%5+1}열${isCastle?' 성':''}${a?' '+(a.p===0?'내 말':'AI 말')+' '+(a.d===-1?'위':'아래')+' 방향':''}${dest?' 이동 가능':''}" ${allocating||state.turn!==0||state.winner!==null?'disabled':''}>${isCastle?'<span class="cc-castle" aria-hidden="true">♜</span>':''}${a?`<span class="cc-piece cc-${a.p===0?humanColor:humanColor==='black'?'white':'black'}"><span>${a.d===-1?'▲':'▼'}</span></span>`:''}${dest?'<span class="cc-dot"></span>':''}</button>`;
+      return `<button class="cc-cell ${lastMove?.from===i?'cc-last-from':''} ${lastMove?.to===i?'cc-last-to'+(lastMove.capture?' cc-last-capture':''):''} ${source?'cc-source':''} ${dest?'cc-dest':''} ${selectedPiece===i?'cc-selected':''}" data-cc-cell="${i}" aria-label="${Math.floor(i/5)+1}행 ${i%5+1}열${isCastle?' 성':''}${a?' '+(local()?ClubPlay.label(a.p===0?'black':'white'):(a.p===0?'내 말':'AI 말'))+' '+(a.d===-1?'위':'아래')+' 방향':''}${dest?' 이동 가능':''}" ${allocating||(!local()&&state.turn!==0)||state.winner!==null?'disabled':''}>${isCastle?'<span class="cc-castle" aria-hidden="true">♜</span>':''}${a?`<span class="cc-piece cc-${a.p===0?humanColor:humanColor==='black'?'white':'black'}"><span>${a.d===-1?'▲':'▼'}</span></span>`:''}${dest?'<span class="cc-dot"></span>':''}</button>`;
     }).join('');
     $('ccHumanDog').className='dog-portrait dog-'+humanColor;$('ccAIDog').className='dog-portrait dog-'+(humanColor==='black'?'white':'black');
     $('ccCounts').textContent=`나 ${state.board.filter(a=>a?.p===0).length}개 · AI ${state.board.filter(a=>a?.p===1).length}개 · ${level==='hard'?'어려움':'보통'}`;
     $('ccResult').hidden=state.winner===null;
-    $('ccResultTitle').textContent=state.winner===0?'당신의 승리!':'AI의 승리';$('ccReason').textContent=state.reason;
-    $('ccStatus').textContent=allocating?'후공인 내가 카드 배치를 결정합니다.':state.winner!==null?state.reason:!ms.length?'합법수가 없습니다. 처리 규칙이 정해지지 않아 진행을 멈췄습니다. 다시 하기 또는 설정으로 이동하세요.':state.turn===1?'AI가 생각하고 있어요…':selectedPiece!==null?'강조된 목적지를 누르세요.':selectedCard?'테두리가 빛나는 내 말을 선택하세요.':'내 카드 한 장을 선택하세요.';
+    $('ccResultTitle').textContent=local()?(state.winner===0?'PLAYER 1 · BLACK 승리!':'PLAYER 2 · WHITE 승리!'):state.winner===0?'당신의 승리!':'AI의 승리';$('ccReason').textContent=state.reason;
+    $('ccStatus').textContent=allocating?(local()?'후공 PLAYER '+(2-state.turn)+' · 카드 배치를 결정합니다.':'후공인 내가 카드 배치를 결정합니다.'):state.winner!==null?state.reason:!ms.length?'합법수가 없습니다. 처리 규칙이 정해지지 않아 진행을 멈췄습니다. 다시 하기 또는 설정으로 이동하세요.':!local()&&state.turn===1?'AI가 생각하고 있어요…':selectedPiece!==null?'강조된 목적지를 누르세요.':selectedCard?'테두리가 빛나는 내 말을 선택하세요.':'내 카드 한 장을 선택하세요.';
+    if(local()) {
+      $('ccCounts').textContent='BLACK '+state.board.filter(a=>a?.p===0).length+'개 · WHITE '+state.board.filter(a=>a?.p===1).length+'개';
+      if(!allocating&&state.winner===null)$('ccStatus').textContent=ClubPlay.label(state.turn===0?'black':'white')+' 차례 · '+$('ccStatus').textContent;
+      $('ccBoard').setAttribute('aria-label','카드 체스 5행 5열 · 위 WHITE 성 · 아래 BLACK 성');
+    }
     $('ccThreat').textContent=state.winner===null&&state.pending.length?'성 침입! 방어 측의 이번 턴이 끝날 때 침입 말이 살아 있으면 승리합니다.':state.queen?'말이 2개 남아 점퍼가 퀸으로 바뀌었습니다.':'';
   }
-  function commit(m){lastMove={from:m.from,to:m.to,capture:!!state.board[m.to]};ClubUX.action('ccGame',lastMove.capture?'capture':'move');state=apply(state,m);if(state.winner!==null)ClubUX.result('cardchess',state.winner===0?humanColor:humanColor==='black'?'white':'black');selectedCard=selectedPiece=null;render();schedule();}
-  function schedule(){if(state.turn!==1||state.winner!==null||!moves(state).length)return;const token=generation,started=performance.now();let finished=false;
-    const finish=m=>{if(finished||token!==generation||!$('ccGame').classList.contains('active'))return;finished=true;if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{timer=null;if(token!==generation||!$('ccGame').classList.contains('active'))return;if(m&&moves(state).some(a=>a.from===m.from&&a.to===m.to&&a.card===m.card))commit(m);},Math.max(0,550-(performance.now()-started)));};
-    const fallback=()=>{if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{if(token===generation)finish(choose(state,level,180));},30);};
+  function commit(m){lastMove={from:m.from,to:m.to,capture:!!state.board[m.to]};ClubUX.action('ccGame',lastMove.capture?'capture':'move');state=apply(state,m);if(state.winner!==null)ClubUX.result('cardchess',state.winner===0?humanColor:humanColor==='black'?'white':'black');selectedCard=selectedPiece=null;if(local()&&state.winner===null)cover(state.turn);else render();schedule();}
+  function schedule(){if(!ClubPlay.ai('cardchess')||state.turn!==1||state.winner!==null||!moves(state).length)return;const token=generation,started=performance.now();let finished=false;
+    const finish=m=>{if(finished||token!==generation||!ClubPlay.ai('cardchess')||!$('ccGame').classList.contains('active'))return;finished=true;if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{timer=null;if(token!==generation||!ClubPlay.ai('cardchess')||!$('ccGame').classList.contains('active'))return;if(m&&moves(state).some(a=>a.from===m.from&&a.to===m.to&&a.card===m.card))commit(m);},Math.max(0,550-(performance.now()-started)));};
+    const fallback=()=>{if(token!==generation||!ClubPlay.ai('cardchess'))return;if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{if(token===generation&&ClubPlay.ai('cardchess'))finish(choose(state,level,180));},30);};
     try{worker=new Worker('cardchess.js');worker.onmessage=e=>e.data.error?fallback():finish(e.data.move);worker.onerror=e=>{e.preventDefault();fallback();};worker.postMessage({state,level});}catch(_){fallback();}
   }
   $('ccOpen').onclick=()=>screen('ccSetup');$('ccHome').onclick=()=>screen('homeScreen');$('ccBack').onclick=()=>screen('ccSetup');$('ccSettings').onclick=()=>screen('ccSetup');$('ccStart').onclick=start;$('ccRestart').onclick=start;$('ccAgain').onclick=start;
-  $('ccDealUndo').onclick=()=>{allocation.pop();renderDeal();};
-  $('ccDealCards').onclick=e=>{const b=e.target.closest('[data-cc-card]');if(!b||allocation.includes(b.dataset.ccCard))return;allocation.push(b.dataset.ccCard);if(allocation.length===4){state.hands=[allocation.slice(0,2),allocation.slice(2)];state.wait=CARDS.find(c=>!allocation.includes(c));$('ccDeal').hidden=true;render();schedule();}else renderDeal();};
-  $('ccHand').onclick=e=>{const b=e.target.closest('[data-cc-card]');if(!b||b.disabled)return;selectedCard=selectedCard===b.dataset.ccCard?null:b.dataset.ccCard;selectedPiece=null;render();};
-  $('ccBoard').onclick=e=>{const b=e.target.closest('[data-cc-cell]');if(!b||b.disabled||!selectedCard)return;const i=Number(b.dataset.ccCell),ms=moves(state).filter(m=>m.card===selectedCard),m=ms.find(a=>a.from===selectedPiece&&a.to===i);if(m){commit(m);return;}selectedPiece=i!==selectedPiece&&ms.some(a=>a.from===i)?i:null;render();};
+  $('ccDealUndo').onclick=()=>{if(passing)return;allocation.pop();renderDeal();};
+  $('ccDealCards').onclick=e=>{const b=e.target.closest('[data-cc-card]');if(passing||!b||allocation.includes(b.dataset.ccCard))return;allocation.push(b.dataset.ccCard);if(allocation.length===4){state.hands=[allocation.slice(0,2),allocation.slice(2)];if(local()){state.hands[1-state.turn]=allocation.slice(0,2);state.hands[state.turn]=allocation.slice(2);}state.wait=CARDS.find(c=>!allocation.includes(c));$('ccDeal').hidden=true;if(local())cover(state.turn);else render();schedule();}else renderDeal();};
+  $('ccHand').onclick=e=>{const b=e.target.closest('[data-cc-card]');if(passing||!b||b.disabled)return;selectedCard=selectedCard===b.dataset.ccCard?null:b.dataset.ccCard;selectedPiece=null;render();};
+  $('ccBoard').onclick=e=>{const b=e.target.closest('[data-cc-cell]');if(passing||!b||b.disabled||!selectedCard)return;const i=Number(b.dataset.ccCell),ms=moves(state).filter(m=>m.card===selectedCard),m=ms.find(a=>a.from===selectedPiece&&a.to===i);if(m){commit(m);return;}selectedPiece=i!==selectedPiece&&ms.some(a=>a.from===i)?i:null;render();};
+  ClubPlay.register('cardchess',cancel);
 })();

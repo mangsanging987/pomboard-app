@@ -35,20 +35,20 @@ const api={initial,shortestPath,pawnMoves,wallLegal,wallShapeLegal,legal,apply,a
 if(typeof document!=='undefined')(()=>{
 'use strict';const E=window.QuoridorEngine,$=id=>document.getElementById(id),color=p=>p===0?'black':'white',asset=(p,pose='default')=>`assets/dogs/${color(p)}-${pose}.webp`;
 let state=E.initial(),human=0,level='normal',pawnSelected=false,preview=null,busy=false,generation=0,worker=null,timer=null,active=false;
-function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);}
+function show(id){ClubPlay.enter(id);document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);}
 function stop(){generation++;clearTimeout(timer);worker?.terminate();worker=null;busy=false;active=false;preview=null;pawnSelected=false;gesture=null;$('qResult').close();}
 function leave(id){stop();show(id);}
 function start(){stop();human=$('qColor').value==='black'?0:1;level=$('qLevel').value;state=E.initial();pawnSelected=false;preview=null;active=true;ClubUX.begin('quoridor');show('qGame');render();schedule();}
 const coord=n=>`${String.fromCharCode(65+n%9)}${9-(n/9|0)}`;
 function makeBoard(){const b=$('qCells');for(let n=0;n<81;n++){const el=document.createElement('button');el.className='q-cell';el.dataset.cell=n;el.setAttribute('aria-label',coord(n));el.onclick=e=>{if(e.detail===0&&canSelect())activate({type:'cell',to:n});};b.append(el);}for(let p=0;p<2;p++){const token=document.createElement('div');token.className='q-token q-'+color(p);token.id='qPawn'+p;token.innerHTML=`<img src="${asset(p)}" alt="${color(p).toUpperCase()} 포메라니안" draggable="false"><b>${p===0?'B':'W'}</b>`;$('qBoard').append(token);}}
 
-function render(){const yours=active&&!busy&&state.winner===null&&state.turn===human;const moves=pawnSelected&&yours?E.pawnMoves(state):[];
-$('qStatus').textContent=state.winner!==null?`${color(state.winner).toUpperCase()} 승리!`:`${color(state.turn).toUpperCase()} · ${busy?'AI가 생각 중…':yours?'내 차례': 'AI 차례'}`;
+function render(){ClubPlay.turn('quoridor',color(state.turn));const yours=active&&!busy&&state.winner===null&&ClubPlay.human('quoridor',state.turn,human);const moves=pawnSelected&&yours?E.pawnMoves(state):[];
+$('qStatus').textContent=state.winner!==null?`${color(state.winner).toUpperCase()} 승리!`:`${ClubPlay.local('quoridor')?ClubPlay.label(color(state.turn))+' 차례':color(state.turn).toUpperCase()} · ${busy?'AI가 생각 중…':yours?(ClubPlay.local('quoridor')?'한 수를 선택하세요':'내 차례'): 'AI 차례'}`;
 $('qCounts').innerHTML=[0,1].map(p=>`<span class="${state.turn===p?'q-current':''}"><i class="q-side q-${color(p)}"></i>${color(p).toUpperCase()} <b>벽 ${state.remaining[p]}</b></span>`).join('');
 
 $('qSlots').hidden=true;
-for(const el of $('qCells').children){const n=Number(el.dataset.cell);el.disabled=!(moves.includes(n)||(yours&&n===state.pawns[human]));el.setAttribute('aria-pressed',n===state.pawns[human]&&pawnSelected&&yours?'true':'false');el.classList.toggle('q-legal',moves.includes(n));el.classList.toggle('q-from',state.last?.type==='move'&&state.last.from===n);el.classList.toggle('q-to',state.last?.type==='move'&&state.last.to===n);}
-for(let p=0;p<2;p++){const el=$('qPawn'+p),n=state.pawns[p];el.style.left=((n%9+.5)/9*100)+'%';el.style.top=(((n/9|0)+.5)/9*100)+'%';el.classList.toggle('q-selected',p===human&&pawnSelected&&yours);// Pawns always retain the default pose; thinking lives above the board.
+for(const el of $('qCells').children){const n=Number(el.dataset.cell);el.disabled=!(moves.includes(n)||(yours&&n===state.pawns[ClubPlay.local('quoridor')?state.turn:human]));el.setAttribute('aria-pressed',n===state.pawns[ClubPlay.local('quoridor')?state.turn:human]&&pawnSelected&&yours?'true':'false');el.classList.toggle('q-legal',moves.includes(n));el.classList.toggle('q-from',state.last?.type==='move'&&state.last.from===n);el.classList.toggle('q-to',state.last?.type==='move'&&state.last.to===n);}
+for(let p=0;p<2;p++){const el=$('qPawn'+p),n=state.pawns[p];el.style.left=((n%9+.5)/9*100)+'%';el.style.top=(((n/9|0)+.5)/9*100)+'%';el.classList.toggle('q-selected',p===(ClubPlay.local('quoridor')?state.turn:human)&&pawnSelected&&yours);// Pawns always retain the default pose; thinking lives above the board.
 }
 $('qThinking').hidden=!busy;$('qThinking').src=asset(1-human,'thinking');
 $('qWalls').innerHTML=state.walls.map((w,i)=>wallHTML(w,i===state.walls.length-1&&state.last?.type==='wall'?'q-last-wall':'')).join('');
@@ -58,18 +58,18 @@ $('qHint').textContent=!yours?(busy?'AI가 생각 중…':''):preview?(ok?`${coo
 const last=state.last;$('qLast').textContent=last?`${color(last.player).toUpperCase()} · ${last.type==='move'?coord(last.from)+' → '+coord(last.to):`${last.o==='h'?'가로':'세로'} 벽 ${coord(last.r*9+last.c)}`}`:'BLACK 선공 · 각자 벽 10개';
 }
 function wallHTML(w,cls){const h=w.o==='h';return `<i class="q-fence ${h?'q-h':'q-v'} ${cls}" style="left:${(w.c+(h?0:1))/9*100}%;top:${(w.r+(h?1:0))/9*100}%"></i>`;}
-function commit(a,fromAI=false){if(!active||state.winner!==null||(!fromAI&&(busy||state.turn!==human)))return;const t=E.apply(state,a);if(!t)return;state=t;preview=null;pawnSelected=false;busy=false;ClubUX.action('qGame',a.type==='wall'?'place':'move');render();if(state.winner!==null){ClubUX.result('quoridor',color(state.winner));$('qResultTitle').textContent=`${color(state.winner).toUpperCase()} WINS!`;$('qResultDogs').innerHTML=[0,1].map(p=>`<img src="${asset(p,p===state.winner?'win':'lose')}" alt="${color(p).toUpperCase()} ${p===state.winner?'승리':'패배'}">`).join('');$('qResult').showModal();$('qAgain').focus();}else schedule();}
-function schedule(){if(!active||state.winner!==null||state.turn===human)return;busy=true;render();const ticket=generation;
-const finish=a=>{if(ticket!==generation||!active)return;worker?.terminate();worker=null;const safe=E.legal(state,a)?a:E.pawnMoves(state).map(to=>({type:'move',to}))[0];commit(safe,true);};
-const fallback=()=>{worker?.terminate();worker=null;timer=setTimeout(()=>{if(ticket===generation&&active)finish(E.chooseAI(state,level));},30);};
-timer=setTimeout(()=>{if(ticket!==generation||!active)return;try{worker=new Worker('quoridor-worker.js');worker.onmessage=e=>finish(e.data);worker.onerror=()=>fallback();worker.postMessage({state,level});}catch(_){fallback();}},180);
+function commit(a,fromAI=false){if(fromAI&&!ClubPlay.ai('quoridor'))return;if(!active||state.winner!==null||(!fromAI&&(busy||!ClubPlay.human('quoridor',state.turn,human))))return;const t=E.apply(state,a);if(!t)return;state=t;preview=null;pawnSelected=false;busy=false;ClubUX.action('qGame',a.type==='wall'?'place':'move');render();if(state.winner!==null){ClubUX.result('quoridor',color(state.winner));$('qResultTitle').textContent=`${color(state.winner).toUpperCase()} WINS!`;$('qResultDogs').innerHTML=[0,1].map(p=>`<img src="${asset(p,p===state.winner?'win':'lose')}" alt="${color(p).toUpperCase()} ${p===state.winner?'승리':'패배'}">`).join('');$('qResult').showModal();$('qAgain').focus();}else schedule();}
+function schedule(){if(!ClubPlay.ai('quoridor')||!active||state.winner!==null||ClubPlay.human('quoridor',state.turn,human))return;busy=true;render();const ticket=generation;
+const finish=a=>{if(ticket!==generation||!active||!ClubPlay.ai('quoridor'))return;worker?.terminate();worker=null;const safe=E.legal(state,a)?a:E.pawnMoves(state).map(to=>({type:'move',to}))[0];commit(safe,true);};
+const fallback=()=>{if(ticket!==generation||!active||!ClubPlay.ai('quoridor'))return;worker?.terminate();worker=null;timer=setTimeout(()=>{if(ticket===generation&&active&&ClubPlay.ai('quoridor'))finish(E.chooseAI(state,level));},30);};
+timer=setTimeout(()=>{if(ticket!==generation||!active||!ClubPlay.ai('quoridor'))return;try{worker=new Worker('quoridor-worker.js');worker.onmessage=e=>finish(e.data);worker.onerror=()=>fallback();worker.postMessage({state,level});}catch(_){fallback();}},180);
 }
 $('qOpen').onclick=()=>show('qSetup');$('qHome').onclick=()=>leave('homeScreen');$('qBack').onclick=()=>leave('qSetup');$('qStart').onclick=start;$('qAgain').onclick=start;$('qSettings').onclick=()=>leave('qSetup');$('qResultHome').onclick=()=>leave('homeScreen');
 $('qResult').addEventListener('cancel',e=>e.preventDefault());
 
 // Preview is a locked selection. Pointer motion never writes it.
 let gesture=null;
-const canSelect=()=>active&&!busy&&state.winner===null&&state.turn===human;
+const canSelect=()=>active&&!busy&&state.winner===null&&ClubPlay.human('quoridor',state.turn,human);
 const same=(a,b)=>a&&b&&a.r===b.r&&a.c===b.c&&a.o===b.o;
 function candidateAt(e){
   const rect=$('qBoard').getBoundingClientRect();
@@ -93,14 +93,14 @@ function targetAt(e){
   const x=(e.clientX-rect.left)/rect.width*9,y=(e.clientY-rect.top)/rect.height*9;
   if(x<0||x>=9||y<0||y>=9)return null;
   const n=Math.floor(y)*9+Math.floor(x),dx=Math.abs(x%1-.5),dy=Math.abs(y%1-.5);
-  if(n===state.pawns[human]&&dx<.44&&dy<.45)return {type:'cell',to:n};
+  if(n===state.pawns[ClubPlay.local('quoridor')?state.turn:human]&&dx<.44&&dy<.45)return {type:'cell',to:n};
   if(pawnSelected&&dx<.32&&dy<.32&&E.pawnMoves(state).includes(n))return {type:'cell',to:n};
   return candidateAt(e);
 }
 function activate(a){
   if(!canSelect())return;
   if(a?.type==='cell'){
-    if(a.to===state.pawns[human]){preview=null;pawnSelected=!pawnSelected;render();}
+    if(a.to===state.pawns[ClubPlay.local('quoridor')?state.turn:human]){preview=null;pawnSelected=!pawnSelected;render();}
     else if(pawnSelected&&E.pawnMoves(state).includes(a.to))commit({type:'move',to:a.to});
     return;
   }
@@ -109,6 +109,7 @@ function activate(a){
   if(same(preview,a)){commit(a);return;}
   preview=a;render();
 }
+ClubPlay.register('quoridor',stop);
 makeBoard();
 const slots=$('qBoard');
 slots.addEventListener('pointerdown',e=>{

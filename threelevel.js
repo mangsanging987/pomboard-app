@@ -98,23 +98,24 @@
   const $=id=>document.getElementById(id),name=p=>p==='black'?'흑':'백';
   let state=initial(),human='black',level='normal',selected=-1,busy=false,done=true,worker=null,timer=null,epoch=0,scores={black:0,white:0},round=1,loser=null;
   function cancel(){epoch++;worker?.terminate();worker=null;clearTimeout(timer);busy=false;}
-  function screen(id){cancel();document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);}
+  function screen(id){cancel();ClubPlay.enter(id);document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));window.scrollTo(0,0);}
   function coords(i){const p=points[i];return [50+p.x*9,50+p.y*9];}
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('aria-hidden','true');
   for(const [a,b] of edges){const line=document.createElementNS(svg.namespaceURI,'line'),[x,y]=coords(a),[u,v]=coords(b);Object.entries({x1:x,y1:y,x2:u,y2:v}).forEach(([k,v])=>line.setAttribute(k,v));svg.appendChild(line);} $('threeBoard').appendChild(svg);
   const buttons=points.map((p,i)=>{const b=document.createElement('button'),[x,y]=coords(i);b.className='three-node';b.style.left=x+'%';b.style.top=y+'%';b.addEventListener('click',()=>tap(i));$('threeBoard').appendChild(b);return b;});
   function render(){
+    ClubPlay.turn('three',state.turn);
     $('threeScore').textContent=`${round}라운드 / 최대 3 · 흑 ${scores.black} : ${scores.white} 백 · 먼저 2승`;
-    for(const p of COLORS){$('threeCount'+name(p)).textContent=`${name(p)} · ${p===human?'나':'AI'} · 보유 ${state.reserve[p]}`;}
-    $('threeStatus').textContent=done?'아래에서 다음 진행을 선택하세요.':`${state.turn===human?'당신':'AI'} (${name(state.turn)}) · `+(isSetup(state)?`기본 배치 ${state.setup+1}/6 · 이번 순서 ${[1,2,1,2,1,1][state.setup]}개 남음${busy?" · 생각 중…":""}`:busy?'생각 중…':selected<0?'빈 곳을 누르면 놓기 · 내 돌을 누르면 이동':'강조된 목적지를 누르세요 · 같은 돌은 선택 해제');
-    const legal=!done&&!busy&&state.turn===human?legalActions(state):[];
+    for(const p of COLORS){$('threeCount'+name(p)).textContent=`${name(p)} · ${ClubPlay.local('three')?ClubPlay.label(p):p===human?'나':'AI'} · 보유 ${state.reserve[p]}`;}
+    $('threeStatus').textContent=done?'아래에서 다음 진행을 선택하세요.':`${ClubPlay.local('three')?ClubPlay.label(state.turn)+' 차례':state.turn===human?'당신':'AI'} (${name(state.turn)}) · `+(isSetup(state)?`기본 배치 ${state.setup+1}/6 · 이번 순서 ${[1,2,1,2,1,1][state.setup]}개 남음${busy?" · 생각 중…":""}`:busy?'생각 중…':selected<0?'빈 곳을 누르면 놓기 · 내 돌을 누르면 이동':'강조된 목적지를 누르세요 · 같은 돌은 선택 해제');
+    const legal=!done&&!busy&&ClubPlay.human('three',state.turn,human)?legalActions(state):[];
     buttons.forEach((b,i)=>{
-      const stack=state.board[i],height=stack.length,c=top(stack),source=!isSetup(state)&&!done&&!busy&&state.turn===human&&c===human,dest=legal.some(a=>a.to===i&&(selected<0?a.from<0:a.from===selected));
+      const stack=state.board[i],height=stack.length,c=top(stack),source=!isSetup(state)&&!done&&!busy&&ClubPlay.human('three',state.turn,human)&&c===state.turn,dest=legal.some(a=>a.to===i&&(selected<0?a.from<0:a.from===selected));
       b.className='three-node'+(source?' three-source':'')+(dest&&selected>=0?' three-dest three-move-dest':'')+(selected===i?' three-selected':'')+(state.last?.to===i?' three-last ux-last-to':'')+(state.last?.from===i?' ux-last-from':'');
       b.innerHTML=height?`${Array.from({length:height},(_,k)=>`<span class="three-stone ${k===height-1?c:'three-under'}" style="--layer:${k}"></span>`).join('')}${height>1?`<span class="three-height three-height-${height}">${height}</span>`:''}`:`<span class="three-point">${i===center?'·':''}</span>`;
-      b.disabled=!(source||dest||(selected>=0&&!done&&!busy&&state.turn===human&&!height));b.setAttribute('aria-pressed',selected===i?'true':'false');b.setAttribute('aria-label',`${pLabel(i)} ${height?name(c)+' '+height+'층':'빈 점'}${source?' 이동 가능':''}${dest&&selected>=0?' 이동 목적지':''}`);
+      b.disabled=!(source||dest||(selected>=0&&!done&&!busy&&ClubPlay.human('three',state.turn,human)&&!height));b.setAttribute('aria-pressed',selected===i?'true':'false');b.setAttribute('aria-label',`${pLabel(i)} ${height?name(c)+' '+height+'층':'빈 점'}${source?' 이동 가능':''}${dest&&selected>=0?' 이동 목적지':''}`);
     });
-    $('threeHint').textContent=isSetup(state)?'중앙 및 내 돌과 인접한 점은 기본 배치할 수 없어요.':`이동: 1→2층 · 2→1/2/3층 · 3→1/2/3층${!state.reserve[human]?' · 보유 돌 소진: 이동만 가능':''}`;
+    $('threeHint').textContent=isSetup(state)?'중앙 및 내 돌과 인접한 점은 기본 배치할 수 없어요.':`이동: 1→2층 · 2→1/2/3층 · 3→1/2/3층${!state.reserve[ClubPlay.local('three')?state.turn:human]?' · 보유 돌 소진: 이동만 가능':''}`;
   }
   function pLabel(i){return `${points[i].row+1}행 ${points[i].col+1}번째`;}
   function finish(a){
@@ -126,12 +127,12 @@
   function endRound(p,reasons){cancel();done=true;if(p){scores[p]++;if(scores[p]===2)ClubUX.result('three',p);loser=other(p);}else loser=null;
     $('threeResult').hidden=false;$('threeResultTitle').textContent=p?`${name(p)} ${scores[p]===2?'매치':'라운드'} 승리!`:'무승부';$('threeReason').textContent=reasons.join(' · ');
     $('threeNext').textContent=Math.max(...Object.values(scores))===2?'재대결!':'선후공 선택 후 시작';$('threeOrderBox').hidden=Math.max(...Object.values(scores))===2;
-    $('threeChooser').textContent=loser?`직전 패자: ${name(loser)} (${loser===human?'나':'AI'}) · 다음 라운드 선후공`: '같은 라운드 선후공';
+    $('threeChooser').textContent=loser?`직전 패자: ${name(loser)} (${ClubPlay.local('three')?ClubPlay.label(loser):loser===human?'나':'AI'}) · 다음 라운드 선후공`: '같은 라운드 선후공';
     // Manual order selection explicitly stands in for the original vote / AI loser's decision.
     render();
   }
   function tap(i){
-    if(done||busy||state.turn!==human)return;
+    if(done||busy||!ClubPlay.human('three',state.turn,human))return;
     const legal=legalActions(state);
     if(isSetup(state)){
       const placement=legal.find(a=>a.from<0&&a.to===i);
@@ -143,16 +144,16 @@
     if(selected>=0){
       const move=legal.find(a=>a.from===selected&&a.to===i);
       if(move){finish(move);return;}
-      selected=top(state.board[i])===human?i:-1;
+      selected=top(state.board[i])===state.turn?i:-1;
       render();return; // Never place a new stone on the same tap that cancels selection.
     }
-    if(top(state.board[i])===human){selected=i;render();return;}
+    if(top(state.board[i])===state.turn){selected=i;render();return;}
     const placement=legal.find(a=>a.from<0&&a.to===i);
     if(placement)finish(placement);
   }
-  function think(){if(done||state.turn===human)return;busy=true;render();const token=epoch;
-    const accept=a=>{if(token!==epoch)return;worker?.terminate();worker=null;busy=false;const legal=legalActions(state);finish(legal.find(m=>m.from===a?.from&&m.to===a?.to)||legal[0]);};
-    const fallback=()=>{worker?.terminate();worker=null;timer=setTimeout(()=>{if(token===epoch)accept(choose(state,level,250));},60);};
+  function think(){if(!ClubPlay.ai('three')||done||ClubPlay.human('three',state.turn,human))return;busy=true;render();const token=epoch;
+    const accept=a=>{if(token!==epoch||!ClubPlay.ai('three'))return;worker?.terminate();worker=null;busy=false;const legal=legalActions(state);finish(legal.find(m=>m.from===a?.from&&m.to===a?.to)||legal[0]);};
+    const fallback=()=>{if(token!==epoch||!ClubPlay.ai('three'))return;worker?.terminate();worker=null;timer=setTimeout(()=>{if(token===epoch&&ClubPlay.ai('three'))accept(choose(state,level,250));},60);};
     try{worker=new Worker('threelevel.js');worker.onmessage=e=>accept(e.data);worker.onerror=fallback;worker.postMessage({state,level});}catch(e){fallback();}
   }
   function newRound(first){cancel();state=initial(first);selected=-1;done=false;$('threeResult').hidden=true;render();think();}
@@ -160,6 +161,7 @@
   $('threeHome').addEventListener('click',()=>screen('homeScreen'));
   $('threeBack').addEventListener('click',()=>screen('threeSetup'));
   $('threeRestart').addEventListener('click',()=>screen('threeSetup'));
-  $('threeStart').addEventListener('click',()=>{ClubUX.begin('three');human=$('threeColor').value;level=$('threeLevel').value;scores={black:0,white:0};round=1;loser=null;screen('threeGame');newRound($('threeFirst').value==='me'?human:other(human));});
+  $('threeStart').addEventListener('click',()=>{ClubUX.begin('three');human=ClubPlay.local('three')?'black':$('threeColor').value;level=$('threeLevel').value;scores={black:0,white:0};round=1;loser=null;screen('threeGame');newRound($('threeFirst').value==='me'?human:other(human));});
   $('threeNext').addEventListener('click',()=>{if(Math.max(...Object.values(scores))===2){$('threeStart').click();return;}if(loser)round++;newRound($('threeNextFirst').value==='me'?human:other(human));});
+  ClubPlay.register('three',cancel);
 })(typeof globalThis!=='undefined'?globalThis:this);

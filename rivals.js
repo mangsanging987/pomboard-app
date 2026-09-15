@@ -8,6 +8,7 @@
     {id:'threeGame',name:'3층 오목',icon:'▱',status:()=>$('threeStatus'),result:'threeResult',title:'threeResultTitle',human:()=>$('threeColor').value},
     {id:'ccGame',name:'카드 체스',icon:'♛',status:()=>$('ccStatus'),result:'ccResult',title:'ccResultTitle',human:()=>$('ccColor').value}
   ];
+  games.push({id:'qGame',name:'Quoridor',icon:'♟',status:()=>$('qStatus'),result:'qResult',title:'qResultTitle',human:()=>$('qColor').value});
   const opposite=c=>c==='black'?'white':'black';
   const asset=(color,state='default')=>'assets/dogs/'+color+'-'+state+'.webp';
   function portrait(color){return `<span class="dog-portrait dog-${color}"><img src="${asset(color)}" alt="${color.toUpperCase()} · ${color==='black'?'흰':'크림'} 포메라니안" draggable="false"></span>`;}
@@ -27,10 +28,11 @@
   games.forEach(g=>{
     const screen=$(g.id);screen.dataset.clubGame=g.id;
     const old=screen.querySelector('.rivals,.cc-rivals');
-    old.insertAdjacentHTML('beforebegin',panel(g));
+    if(old)old.insertAdjacentHTML('beforebegin',panel(g));else screen.querySelector('.topbar').insertAdjacentHTML('afterend',panel(g));
     // Keep original counters and IDs alive for existing render functions.
-    old.classList.add('club-legacy');
+    old?.classList.add('club-legacy');
     if(g.id==='ccGame')old.querySelectorAll('.dog-portrait').forEach(n=>n.hidden=true);
+    if(g.id==='qGame'){const duel=screen.querySelector('.club-duel');const sync=()=>{const local=screen.dataset.playMode==='local2p';duel.hidden=!local;for(const p of duel.querySelectorAll('.club-player')){const active=p.dataset.side===screen.dataset.turn&&!$('qResult').open;p.classList.toggle('is-turn',active);p.querySelector('b').textContent=ClubPlay.label(p.dataset.side);p.querySelector('.club-reaction').textContent=active?'내 차례!':'기다리는 중';}};new MutationObserver(sync).observe($('qStatus'),{childList:true});sync();return;}
     const result=$(g.result),card=g.id==='gameScreen'?result.querySelector('.result-card'):result;
     const backdrop=document.createElement('div');backdrop.className='club-result-backdrop';backdrop.hidden=true;screen.append(backdrop);
     let wasVisible=false,previousFocus=null;
@@ -46,10 +48,11 @@
       backdrop.hidden=!visible||g.id==='gameScreen';
       let turn=/AI/.test(text)?opposite(human):human;
       if(g.id==='threeGame'){if(text.includes('(흑)'))turn='black';if(text.includes('(백)'))turn='white';}
+      const local=screen.dataset.playMode==='local2p';if(local)turn=screen.dataset.turn;
       const paused=/합법수가 없|카드 배치/.test(text);
-      for(const p of duel.querySelectorAll('.club-player')){const c=p.dataset.side,active=c===turn&&!visible&&!paused;p.classList.toggle('is-turn',active);setPortrait(p.querySelector('.dog-portrait'),c,active&&c!==human&&/생각/.test(text)?'thinking':'default');p.querySelector('.club-reaction').textContent=visible?'좋은 승부!':paused?'준비 중':active?(/mill 완성/.test(text)?'잡았다!':c!==human?'생각 중…':'내 차례!'):'기다리는 중';}
+      for(const p of duel.querySelectorAll('.club-player')){const c=p.dataset.side,active=c===turn&&!visible&&!paused;p.querySelector('b').textContent=local?ClubPlay.label(c):c.toUpperCase();p.classList.toggle('is-turn',active);setPortrait(p.querySelector('.dog-portrait'),c,active&&!local&&c!==human&&/생각/.test(text)?'thinking':'default');p.querySelector('.club-reaction').textContent=visible?'좋은 승부!':paused?'준비 중':active?(/mill 완성/.test(text)?'잡았다!':!local&&c!==human?'생각 중…':'내 차례!'):'기다리는 중';}
       const title=$(g.title).textContent;
-      let winner=/무승부/.test(title)?'draw':/흑/.test(title)?'black':/백/.test(title)?'white':/당신/.test(title)?human:/AI/.test(title)?opposite(human):'draw';
+      let winner=/무승부/.test(title)?'draw':/흑|BLACK/.test(title)?'black':/백|WHITE/.test(title)?'white':/당신/.test(title)?human:/AI/.test(title)?opposite(human):'draw';
       card.dataset.winner=visible?winner:'';
       for(const color of ['black','white'])setPortrait(card.querySelector('.club-result-art .dog-'+color),color,visible&&winner!=='draw'?(color===winner?'win':'lose'):'default');
       card.querySelector('.club-result-headline').textContent=winner==='draw'?'GOOD GAME!':winner.toUpperCase()+' WINS!';

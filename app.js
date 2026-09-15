@@ -103,6 +103,7 @@ const forbiddenMarker =
 ========================= */
 
 function showScreen(name) {
+  ClubPlay.enter(screens[name].id);
 
   Object.values(
     screens
@@ -369,6 +370,13 @@ function resetGameState() {
 function updateStatus(
   message = null
 ) {
+  ClubPlay.turn('gomoku',currentTurn);
+  if (ClubPlay.local('gomoku')) {
+    document.getElementById('playerStone').className='status-stone '+currentTurn;
+    document.querySelector('.player-box strong').textContent=message || (gameOver?'게임 종료':ClubPlay.label(currentTurn)+' 차례');
+    document.getElementById('difficultyText').textContent='둘이 하기';
+    return;
+  }
 
   const status =
     document.querySelector(
@@ -413,7 +421,7 @@ function updateStatus(
 
 
   if (
-    currentTurn === playerColor
+    ClubPlay.human('gomoku',currentTurn,playerColor)
   ) {
 
     status.textContent =
@@ -950,8 +958,7 @@ function handleBoardTap(
     ||
     aiThinking
     ||
-    currentTurn
-      !== playerColor
+    !ClubPlay.human('gomoku', currentTurn, playerColor)
   ) {
     return;
   }
@@ -1090,21 +1097,22 @@ function playerMove(
   row,
   col
 ) {
+  const mover = currentTurn;
+  if (!isInside(row,col) || board[row][col]) return;
 
   if (
     gameOver
     ||
     aiThinking
     ||
-    currentTurn
-      !== playerColor
+    !ClubPlay.human('gomoku', currentTurn, playerColor)
   ) {
     return;
   }
 
 
   if (
-    playerColor === "black"
+    mover === "black"
   ) {
 
     const forbidden =
@@ -1140,7 +1148,7 @@ function playerMove(
 
 
   board[row][col] =
-    playerColor;
+    mover;
 
 
   lastMove = {
@@ -1157,12 +1165,12 @@ function playerMove(
     checkWinRenju(
       row,
       col,
-      playerColor
+      mover
     )
   ) {
 
     finishGame(
-      "player"
+      ClubPlay.local('gomoku') ? mover : "player"
     );
 
 
@@ -1186,9 +1194,10 @@ function playerMove(
 
 
   currentTurn =
-    aiColor;
+    mover === "black" ? "white" : "black";
 
 
+  updateStatus();
   scheduleAiMove();
 
 }
@@ -1343,8 +1352,7 @@ function showForbiddenMessage(
       if (
         !gameOver
         &&
-        currentTurn
-          === playerColor
+        ClubPlay.human('gomoku',currentTurn,playerColor)
       ) {
 
         updateStatus();
@@ -1386,6 +1394,7 @@ function cancelAiTimer() {
 
 
 function scheduleAiMove() {
+  if (!ClubPlay.ai('gomoku') || currentTurn !== aiColor) return;
 
   if (
     gameOver
@@ -1440,6 +1449,7 @@ function scheduleAiMove() {
 ========================= */
 
 function makeAiMove() {
+  if (!ClubPlay.ai('gomoku') || currentTurn !== aiColor) return;
 
   if (
     gameOver
@@ -1559,6 +1569,12 @@ function finishGame(
   result
 ) {
 
+  if (gameOver) return;
+  if (ClubPlay.local('gomoku')) {
+    gameOver=true; cancelAiTimer(); ClubUX.result('gomoku',result);
+    const text=result==='draw'?'무승부':ClubPlay.label(result)+' 승리!';
+    updateStatus(text); showResult('draw'); resultTitle.textContent=text; resultDescription.textContent='좋은 승부였어요. 한 판 더 둘까요?'; return;
+  }
   ClubUX.result('gomoku', result === 'player' ? playerColor : result === 'ai' ? aiColor : 'draw');
   gameOver =
     true;
@@ -4011,3 +4027,4 @@ window.addEventListener(
 
   }
 );
+ClubPlay.register('gomoku', () => {cancelAiTimer();clearTimeout(forbiddenTimer);hideForbiddenMarker();});

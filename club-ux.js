@@ -5,12 +5,12 @@
   const count=v=>Number.isSafeInteger(v)&&v>=0?v:0;
   const pair=v=>({black:count(v?.black),white:count(v?.white),draw:count(v?.draw)});
   const date=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
-  function normalize(v){return {version:1,total:pair(v?.total),today:{date:typeof v?.today?.date==='string'?v.today.date:date(),...pair(v?.today)},games:Object.fromEntries(Object.keys(games).map(g=>[g,pair(v?.games?.[g])])),settings:{sound:typeof v?.settings?.sound==='boolean'?v.settings.sound:true,haptics:typeof v?.settings?.haptics==='boolean'?v.settings.haptics:true},recorded:Array.isArray(v?.recorded)?v.recorded.filter(x=>typeof x==='string'):[]};}
+  function normalize(v){return {version:2,total:pair(v?.total),today:{date:typeof v?.today?.date==='string'?v.today.date:date(),...pair(v?.today)},games:Object.fromEntries(Object.keys(games).map(g=>[g,pair(v?.games?.[g])])),modes:{solo:pair(v?.modes?.solo),local2p:pair(v?.modes?.local2p)},settings:{sound:typeof v?.settings?.sound==='boolean'?v.settings.sound:true,haptics:typeof v?.settings?.haptics==='boolean'?v.settings.haptics:true},recorded:Array.isArray(v?.recorded)?v.recorded.filter(x=>typeof x==='string'):[]};}
   let data;try{data=normalize(JSON.parse(localStorage.getItem(key)));}catch(_){data=normalize(null);}
-  const sessions={},completed=new Set();let audio=null;
+  const sessions={},sessionModes={},completed=new Set();let audio=null;
   const save=()=>{try{localStorage.setItem(key,JSON.stringify(data));}catch(_){/* Private mode / full storage: keep playing in memory. */}};
   function rollover(){if(data.today.date!==date()){data.today={date:date(),...pair()};save();}}
-  function begin(game){sessions[game]=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}-${game}`;}
+  function begin(game){sessionModes[game]=ClubPlay.mode(game);sessions[game]=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}-${game}`;}
   function unlock(){if(!data.settings.sound)return;try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;audio||=new Audio();if(audio.state==='suspended')audio.resume().catch(()=>{});}catch(_){}}
   function effect(kind){
     if(data.settings.haptics)try{navigator.vibrate?.(kind==='win'?[12,35,12]:kind==='capture'?12:6);}catch(_){}
@@ -19,7 +19,7 @@
   }
   const timers=new Map();let lastReaction=0;
   function action(screen,kind){effect(kind);if(kind!=='capture'||Date.now()-lastReaction<6000)return;lastReaction=Date.now();const host=document.querySelector('#'+screen+' .club-duel');if(!host)return;let b=host.querySelector('.ux-bubble');if(!b){b=document.createElement('span');b.className='ux-bubble';b.setAttribute('role','status');host.append(b);}b.textContent='잡았다!';b.hidden=false;clearTimeout(timers.get(screen));timers.set(screen,setTimeout(()=>b.hidden=true,1800));}
-  function result(game,winner){const id=sessions[game];if(!id||!['black','white','draw'].includes(winner)||completed.has(id))return;rollover();if(data.recorded.includes(id))return;completed.add(id);data.recorded.push(id);data.total[winner]++;data.today[winner]++;data.games[game][winner]++;save();render();effect('win');}
+  function result(game,winner){const id=sessions[game];if(!id||!['black','white','draw'].includes(winner)||completed.has(id))return;rollover();if(data.recorded.includes(id))return;completed.add(id);data.recorded.push(id);data.total[winner]++;data.today[winner]++;data.games[game][winner]++;data.modes[sessionModes[game]||'solo'][winner]++;save();render();effect('win');}
   function render(){rollover();const box=document.getElementById('clubStats');if(!box)return;box.querySelector('.ux-total').textContent=`BLACK ${data.total.black}승  vs  WHITE ${data.total.white}승`;box.querySelector('.ux-today').textContent=`오늘 ${data.today.black} : ${data.today.white}`;box.querySelector('.ux-games').innerHTML=Object.entries(games).map(([g,n])=>`<p><span>${n}</span><b>${data.games[g].black} : ${data.games[g].white}${data.games[g].draw?` · 무승부 ${data.games[g].draw}`:''}</b></p>`).join('');document.querySelectorAll('[data-ux-setting]').forEach(e=>{e.checked=data.settings[e.dataset.uxSetting];const label=`${e.dataset.uxSetting==='sound'?'효과음':'햅틱'} ${e.checked?'끄기':'켜기'}`;e.setAttribute('aria-label',label);e.title=label;e.closest('.ux-control').title=label;});}
   window.ClubUX={begin,result,action};
   document.addEventListener('pointerdown',unlock,{passive:true});document.addEventListener('keydown',unlock);

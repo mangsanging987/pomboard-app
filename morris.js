@@ -90,18 +90,20 @@
   const $=id=>document.getElementById(id);
   let state=initial(),human=1,level='normal',selected=-1,pending=[],scores=[0,0,0],round=1,done=false,busy=false,worker=null,timer=null,epoch=0,notice='',lastAction=null;
   function cancel(){epoch++;if(worker)worker.terminate();worker=null;clearTimeout(timer);busy=false;}
-  function screen(id){cancel();document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
+  function screen(id){cancel();ClubPlay.enter(id);document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
   function coords(i){return [8+(names[i].charCodeAt(0)-65)*14,8+(7-Number(names[i][1]))*14];}
   const ns='http://www.w3.org/2000/svg';const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('aria-hidden','true');
   for(const [a,b] of edges){const l=document.createElementNS(ns,'line'),[x,y]=coords(a),[u,v]=coords(b);Object.entries({x1:x,y1:y,x2:u,y2:v}).forEach(([k,val])=>l.setAttribute(k,val));svg.appendChild(l);} $('morrisBoard').appendChild(svg);
   const buttons=names.map((name,i)=>{const b=document.createElement('button'),[x,y]=coords(i);b.className='morris-node';b.style.left=x+'%';b.style.top=y+'%';b.addEventListener('click',()=>tap(i));$('morrisBoard').appendChild(b);return b;});
   function render(){
+    ClubPlay.turn('morris',state.turn===1?'black':'white');
     $('morrisScore').textContent=`${round}라운드 · 흑 ${scores[1]} : ${scores[2]} 백 · 나: ${human===1?'흑':'백'} · ${level==='hard'?'어려움':'보통'}`;
+    if(ClubPlay.local('morris'))$('morrisScore').textContent=`${round}라운드 · BLACK ${scores[1]} : ${scores[2]} WHITE · 먼저 2승`;
     $('morrisCounts').textContent=`흑: 판 ${count(state,1)} · 남은 배치 ${state.reserve[1]}  /  백: 판 ${count(state,2)} · 남은 배치 ${state.reserve[2]}`;
     const phase=placing(state)?'배치':count(state,state.turn)===3?'자유 이동':'이동';
-    $('morrisStatus').textContent=done?notice:pending.length?'mill 완성! 표시된 상대 말을 제거하세요.':busy?'AI가 생각 중…':`${notice?notice+' ':''}${phase} · ${state.turn===human?'당신':'AI'}의 차례${selected>=0?' — 이동할 빈 점 선택':''}`;
-    const legal=done||busy||state.turn!==human?[]:moves(state);
-    buttons.forEach((b,i)=>{const capture=pending.some(t=>t.capture===i),dest=legal.some(m=>m.to===i&&(placing(state)||m.from===selected));b.className='morris-node'+(state.board[i]===1?' morris-black':state.board[i]===2?' morris-white':'')+(selected===i?' morris-selected':'')+(capture?' morris-capture':'')+(dest?' morris-destination':'');b.classList.toggle('ux-last-from',lastAction?.from===i);b.classList.toggle('ux-last-to',lastAction?.to===i);b.classList.toggle('ux-last-capture',lastAction?.capture===i);b.textContent=state.board[i]?'':names[i];b.setAttribute('aria-label',`${names[i]} ${state.board[i]===1?'흑':state.board[i]===2?'백':'빈 점'}${capture?' 제거 가능':''}`);b.disabled=done||busy||state.turn!==human||(pending.length?!capture:!dest&&!legal.some(m=>m.from===i));});
+    $('morrisStatus').textContent=done?notice:pending.length?(ClubPlay.local('morris')?ClubPlay.label(state.turn===1?'black':'white')+' 차례 · ':'')+'mill 완성! 표시된 상대 말을 제거하세요.':busy?'AI가 생각 중…':`${notice?notice+' ':''}${phase} · ${ClubPlay.local('morris')?ClubPlay.label(state.turn===1?'black':'white'):state.turn===human?'당신':'AI'} 차례${selected>=0?' — 이동할 빈 점 선택':''}`;
+    const legal=done||busy||!ClubPlay.human('morris',state.turn,human)?[]:moves(state);
+    buttons.forEach((b,i)=>{const capture=pending.some(t=>t.capture===i),dest=legal.some(m=>m.to===i&&(placing(state)||m.from===selected));b.className='morris-node'+(state.board[i]===1?' morris-black':state.board[i]===2?' morris-white':'')+(selected===i?' morris-selected':'')+(capture?' morris-capture':'')+(dest?' morris-destination':'');b.classList.toggle('ux-last-from',lastAction?.from===i);b.classList.toggle('ux-last-to',lastAction?.to===i);b.classList.toggle('ux-last-capture',lastAction?.capture===i);b.textContent=state.board[i]?'':names[i];b.setAttribute('aria-label',`${names[i]} ${state.board[i]===1?'흑':state.board[i]===2?'백':'빈 점'}${capture?' 제거 가능':''}`);b.disabled=done||busy||!ClubPlay.human('morris',state.turn,human)||(pending.length?!capture:!dest&&!legal.some(m=>m.from===i));});
   }
   function finish(t,alreadyPlaced=false){
     lastAction={...t};ClubUX.action('morrisGame',t.capture>=0?'capture':t.from>=0?'move':'place');
@@ -113,16 +115,16 @@
     render();if(!done)think();
   }
   function tap(i){
-    if(done||busy||state.turn!==human)return;
+    if(done||busy||!ClubPlay.human('morris',state.turn,human))return;
     if(pending.length){const t=pending.find(t=>t.capture===i);if(t)finish(t,true);return;}
-    if(!placing(state)&&state.board[i]===human){selected=selected===i?-1:i;render();return;}
+    if(!placing(state)&&state.board[i]===state.turn){selected=selected===i?-1:i;render();return;}
     const choices=turns(state).filter(t=>t.to===i&&(placing(state)||t.from===selected));if(!choices.length)return;
     if(choices[0].capture>=0){lastAction={...choices[0],capture:-1};ClubUX.action('morrisGame',choices[0].from>=0?'move':'place');state=place(state,choices[0]);pending=choices;selected=-1;notice='';render();}else finish(choices[0]);
   }
   function think(){
-    if(done||state.turn===human)return;busy=true;render();const token=epoch;
-    const accept=t=>{if(token!==epoch)return;if(worker)worker.terminate();worker=null;busy=false;const valid=turns(state).find(m=>m.from===t?.from&&m.to===t.to&&m.capture===t.capture);finish(valid||choose(state,'normal'));};
-    const fallback=()=>{if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{if(token===epoch)accept(choose(state,'normal'));},60);};
+    if(!ClubPlay.ai('morris')||done||ClubPlay.human('morris',state.turn,human))return;busy=true;render();const token=epoch;
+    const accept=t=>{if(token!==epoch||!ClubPlay.ai('morris'))return;if(worker)worker.terminate();worker=null;busy=false;const valid=turns(state).find(m=>m.from===t?.from&&m.to===t.to&&m.capture===t.capture);finish(valid||choose(state,'normal'));};
+    const fallback=()=>{if(token!==epoch||!ClubPlay.ai('morris'))return;if(worker)worker.terminate();worker=null;timer=setTimeout(()=>{if(token===epoch&&ClubPlay.ai('morris'))accept(choose(state,'normal'));},60);};
     try{worker=new Worker('morris.js');worker.onmessage=e=>accept(e.data);worker.onerror=fallback;worker.postMessage({state,level});}catch(e){fallback();}
   }
   function newRound(){lastAction=null;cancel();state=initial();selected=-1;pending=[];done=false;notice='';$('morrisResult').hidden=true;render();think();}
@@ -133,4 +135,5 @@
   $('morrisStart').addEventListener('click',()=>{human=Number($('morrisColor').value);level=$('morrisLevel').value;screen('morrisGame');newMatch();});
   $('morrisRestart').addEventListener('click',newMatch);
   $('morrisNext').addEventListener('click',()=>{if(Math.max(...scores)===2)newMatch();else{round++;newRound();}});
+  ClubPlay.register('morris',cancel);
 })(typeof globalThis!=='undefined'?globalThis:this);

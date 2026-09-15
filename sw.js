@@ -1,8 +1,10 @@
-const CACHE_NAME = "pompom-board-club-v1";
+const CACHE_NAME = "pompom-board-club-v2-local2p";
 
 const APP_FILES = [
   "./",
   "./index.html",
+  "./play-mode.js",
+  "./play-mode.css",
   "./style.css",
   "./app.js",
   "./rivals.css",
@@ -16,14 +18,16 @@ const APP_FILES = [
   "./quoridor.js",
   "./quoridor-worker.js",
   "./manifest.json",
-  "./assets/app-icon.png"
+  "./assets/app-icon.png",
+  "./assets/pomeranians.jpeg",
+  ...["black", "white"].flatMap(color => ["default", "thinking", "win", "lose"].map(pose => `./assets/dogs/${color}-${pose}.webp`))
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_FILES))
   );
-  self.skipWaiting();
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {
@@ -31,12 +35,11 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith("pompom-board-club-") && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
-      )
+      ).then(() => self.clients.claim())
     )
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
